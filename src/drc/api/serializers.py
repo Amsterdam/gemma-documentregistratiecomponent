@@ -1,10 +1,12 @@
 """
 Serializers of the Document Registratie Component REST API
 """
+from django.db import transaction
 from django.utils.encoding import force_text
 
 from drf_extra_fields.fields import Base64FileField
 from rest_framework import serializers
+from rest_framework.settings import api_settings
 from zds_schema.constants import ObjectTypes
 from zds_schema.validators import IsImmutableValidator, URLValidator
 
@@ -12,6 +14,9 @@ from drc.datamodel.constants import RelatieAarden
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, ObjectInformatieObject
 )
+from drc.sync.signals import SyncError
+
+from .auth import get_zrc_auth, get_ztc_auth
 
 
 class AnyFileType:
@@ -55,7 +60,7 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
                 'lookup_field': 'uuid',
             },
             'informatieobjecttype': {
-                'validators': [URLValidator()],
+                'validators': [URLValidator(get_auth=get_ztc_auth)],
             }
         }
 
@@ -90,7 +95,7 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
             },
             'object': {
                 'validators': [
-                    URLValidator(headers={'Accept-Crs': 'EPSG:4326'}),
+                    URLValidator(get_auth=get_zrc_auth, headers={'Accept-Crs': 'EPSG:4326'}),
                     IsImmutableValidator(),
                 ],
             },
@@ -111,3 +116,18 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
             del self.fields['titel']
             del self.fields['beschrijving']
             del self.fields['registratiedatum']
+
+    def save(self, **kwargs):
+        # can't slap a transaction atomic on this, since ZRC/BRC query for the
+        # relation!
+        try:
+            return super().save(**kwargs)
+        except SyncError as sync_error:
+            # delete the object again
+            ObjectInformatieObject.objects.filter(
+                informatieobject=self.validated_data['informatieobject'],
+                object=self.validated_data['object']
+            )._raw_delete('default')
+            raise serializers.ValidationError({
+                api_settings.NON_FIELD_ERRORS_KEY: sync_error.args[0]
+            }) from sync_error

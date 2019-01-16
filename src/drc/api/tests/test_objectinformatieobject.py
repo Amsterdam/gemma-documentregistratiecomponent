@@ -18,6 +18,7 @@ from drc.datamodel.models import ObjectInformatieObject
 from drc.datamodel.tests.factories import (
     EnkelvoudigInformatieObjectFactory, ObjectInformatieObjectFactory
 )
+from drc.sync.signals import SyncError
 
 ZAAK = f'http://example.com/zrc/api/v1/zaak/{uuid.uuid4().hex}'
 BESLUIT = f'http://example.com/brc/api/v1/besluit/{uuid.uuid4().hex}'
@@ -256,6 +257,20 @@ class ObjectInformatieObjectAPITests(APITestCase):
 
         self.assertEqual(response.json(), expected)
 
+    def test_filter(self):
+        zio = ObjectInformatieObjectFactory.create(is_zaak=True)
+        eo_detail_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+            'version': '1',
+            'uuid': zio.informatieobject.uuid,
+        })
+        zio_list_url = reverse('objectinformatieobject-list', kwargs={'version': '1'})
+
+        response = self.client.get(zio_list_url, {
+            'informatieobject': f'http://testserver{eo_detail_url}',
+        })
+
+        self.assertEqual(response.status_code, 200)
+
     def test_update_zaak(self):
         eo = EnkelvoudigInformatieObjectFactory.create()
         zio = ObjectInformatieObjectFactory.create(is_zaak=True)
@@ -281,3 +296,27 @@ class ObjectInformatieObjectAPITests(APITestCase):
             with self.subTest(field=field):
                 error = get_validation_errors(response, field)
                 self.assertEqual(error['code'], IsImmutableValidator.code)
+
+    def test_sync_create_fails(self):
+        self.mocked_sync_create.side_effect = SyncError("Sync failed")
+
+        enkelvoudig_informatie = EnkelvoudigInformatieObjectFactory.create()
+        enkelvoudig_informatie_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+            'version': '1',
+            'uuid': enkelvoudig_informatie.uuid,
+        })
+
+        content = {
+            'informatieobject': 'http://testserver' + enkelvoudig_informatie_url,
+            'object': BESLUIT,
+            'objectType': ObjectTypes.besluit,
+        }
+
+        # Send to the API
+        response = self.client.post(self.list_url, content)
+
+        # Test response
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, response.data)
+
+        # transaction must be rolled back
+        self.assertFalse(ObjectInformatieObject.objects.exists())
