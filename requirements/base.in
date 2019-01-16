@@ -9,6 +9,7 @@ raven
 Django
 django-axes
 django-choices
+django-cors-middleware
 
 djangorestframework
 django-extra-fields
@@ -16,4 +17,4 @@ django-filter
 djangorestframework-camel-case
 djangorestframework-filters
 drf-yasg
-zds-schema==0.8.0
+zds-schema==0.17.7

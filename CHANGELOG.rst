@@ -2,6 +2,82 @@
 Wijzigingen
 ===========
 
+0.6.10 (2018-12-13)
+==================
+
+Bump Django and urllib
+
+* urllib3<=1.22 has a CVE
+* use latest patch release of Django 2.0
+
+0.6.9 (2018-12-11)
+==================
+
+Small bugfixes
+
+* Fixed validator using newer gemma-zds-client
+* Fixed reverting the ``ObjectInformatieObject`` creation if the remote relation
+  cannot be created to prevent inconsistency
+* Fixed url-to-object resolution in filter params when hosted on a subpath
+* Fixed validation of mismatching ``object`` and ``objectType`` when relating
+  a document to an object
+* Added a name for the session cookie to preserve sessions on the same domain
+  between components.
+* Added missing Api-Version header
+* Added missing Location header to OAS
+
+
+0.6.0 (2018-11-27)
+==================
+
+Stap naar volwassenere API
+
+* Update naar recente zds-schema versie
+* HTTP 400 errors op onbekende/invalide filter-parameters
+* Docker container beter te customizen via environment variables
+
+Breaking change
+---------------
+
+De ``Authorization`` headers is veranderd van formaat. In plaats van ``<jwt>``
+is het nu ``Bearer <jwt>`` geworden.
+
+0.5.3 (2018-11-26)
+==================
+
+Updated to zds-schema 0.14.0 to handle JWT decoding issues properly
+
+0.5.2 (2018-11-22)
+==================
+
+DSO API-srategie fix
+
+Foutberichten bevatten een ``type`` key. De waarde van deze key begint niet
+langer incorrect met ``"URI: "``.
+
+
+0.5.1 (2018-11-21)
+==================
+
+Fix missing auth configuration from 0.5.0
+
+0.5.0 (2018-11-21)
+==================
+
+Autorisatie-feature release
+
+* Maak authenticated calls naar ZTC en ZRC
+* Voeg JWT client/secret management toe
+* Opzet credentialstore om URLs te kunnen valideren met auth/autz
+* Support toevoegd om direct OAS 3.0 te serven op
+  ``http://localhost:8000/api/v1/schema/openapi.yaml?v=3``. Zonder querystring
+  parameter krijg je Swagger 2.0.
+
+0.4.5 (2018-11-16)
+==================
+
+Added CORS-headers
+
 0.4.4 (2018-11-05)
 ==================
 

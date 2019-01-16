@@ -32,9 +32,13 @@ def sync_create(relation: ObjectInformatieObject):
 
     # figure out which remote resource we need to interact with
     resource = f"{relation.object_type}informatieobject"
-    client = Client.from_url(relation.object, settings.BASE_DIR)
+    client = Client.from_url(relation.object)
 
-    pattern = get_operation_url(client.schema, f'{resource}_create', pattern_only=True)
+    try:
+        pattern = get_operation_url(client.schema, f'{resource}_create', pattern_only=True)
+    except ValueError as exc:
+        raise SyncError("Could not determine remote operation") from exc
+
     # we enforce in the standard that it's a subresource so that we can do this.
     # The real resource URL is extracted from the ``openapi.yaml`` based on
     # the operation
@@ -43,6 +47,7 @@ def sync_create(relation: ObjectInformatieObject):
     try:
         client.create(resource, {'informatieobject': informatieobject_url}, **params)
     except Exception as exc:
+        logger.error("Could not create remote relation", exc_info=1)
         raise SyncError("Could not create remote relation") from exc
 
 
