@@ -24,10 +24,10 @@ node {
 
     stage("Build image") {
         tryStep "build", {
-            def image = docker.build("repo.data.amsterdam.nl/gemma-drc:${env.BUILD_NUMBER}"),
+            def image = docker.build("repo.data.amsterdam.nl/gemma-drc:${env.BUILD_NUMBER}",
                 "--build-arg http_proxy=${JENKINS_HTTP_PROXY_STRING} " +
-                "--build-arg https_proxy=${JENKINS_HTTP_PROXY_STRING} " +
-                "src")
+                "--build-arg https_proxy=${JENKINS_HTTP_PROXY_STRING} "
+            )
             image.push()
 
         }
